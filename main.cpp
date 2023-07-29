@@ -18,18 +18,13 @@ struct EthArpPacket final {
 };
 #pragma pack(pop)
 
-void usage() {
-    printf("syntax: send-arp-test <interface>\n");
-    printf("sample: send-arp-test wlan0\n");
-}
-
 
 string cmd(string command) {
- 
     std::string result;
     char buffer[128];
 
     FILE* pipe = popen(command.c_str(), "r");
+
     if (!pipe) {
         return "Error: popen failed!";
     }
@@ -51,16 +46,15 @@ string cmd(string command) {
 
 string getMymac(string inter) {
     string command = "ifconfig " + inter;
-
     string output = cmd(command);
     istringstream iss(output);
+
     string line;
 
     while (getline(iss, line)) {
         auto pos = line.find("ether ");
         if (pos != std::string::npos) {
             std::string macAddress = line.substr(pos + 6, 17);
-            //macAddress.erase(std::remove(macAddress.begin(), macAddress.end(), ':'), macAddress.end());
             return macAddress;
         }
 
@@ -83,9 +77,9 @@ int main(int argc, char* argv[]) {
     }
 
     char* dev = argv[1];
-    char errbuf[PCAP_ERRBUF_SIZE];
-    
-    pcap_t* handle = pcap_open_live(dev, 0, 0, 0, errbuf);
+    char errbuf[PCAP_ERRBUF_SIZE];   
+    pcap_t* handle = pcap_open_live(dev, BUFSIZ, 1, 1, errbuf);
+
     if (handle == nullptr) {
         fprintf(stderr, "couldn't open device %s(%s)\n", dev, errbuf);
         return -1;
