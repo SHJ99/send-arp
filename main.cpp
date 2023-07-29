@@ -73,7 +73,7 @@ string getMymac(string inter) {
 }
 
 string getVmac(string vip) {
-    string command = "arp -n " + vip + " | awk '/" + vip + "/ {print $3}' ";
+    string command = "arp -n " + vip + " | awk '/" + vip + "/ {print $4}' ";
     //printf("%s", command);
     string output = cmd(command);
     return output;
@@ -86,6 +86,8 @@ int main(int argc, char* argv[]) {
         string str = getMymac("eth0");
         cout << str << endl;
 
+	string cm="sudo arping -c 5 "+(string)argv[1];
+	cmd(cm);
 	string str2 = getVmac(argv[1]);
 	cout<<str2<<endl;
 	return 0;
@@ -105,6 +107,7 @@ int main(int argc, char* argv[]) {
     for (int i = 2; i < argc; i=i+2) {
         EthArpPacket packet;
 	string arpUp = "sudo arping -c 5 " + (string)argv[i];
+	cout<<arpUp<<endl;
         cmd(arpUp);
         string vmac = getVmac(argv[i]); //victim mac
 
